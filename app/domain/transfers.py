@@ -12,3 +12,4 @@ class Transfer(BaseEntity):
     amount: Decimal
     currency: str
     percent_fee: Decimal
+    idempotency_key: str

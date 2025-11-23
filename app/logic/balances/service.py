@@ -10,15 +10,15 @@ from app.logic.utils import normalize_dict
 class BalancesService:
     def __init__(
         self,
-        balance_repo: BalancesRepo,
-        merchant_repo: MerchantsRepo,
+        balances_repo: BalancesRepo,
+        merchants_repo: MerchantsRepo,
     ):
-        self.balance_repo = balance_repo
-        self.merchant_repo = merchant_repo
+        self.balances_repo = balances_repo
+        self.merchants_repo = merchants_repo
 
     async def create_balance(self, balance: dict) -> dict:
         try:
-            res = await self.balance_repo.insert(payload=balance)
+            res = await self.balances_repo.insert(payload=balance)
         except EntityAlreadyExistsError as e:
             raise BalanceAlreadyExistError(str(e)) from e
         except ForeignKeyViolationError as e:
@@ -30,7 +30,8 @@ class BalancesService:
         """
         Не можем сделать join запрос поскольку нужно зарейзить not found если нет мерчанта
         """
-        merchant = await self.merchant_repo.search_first_row(name=merchant_name)
+        merchant = await self.merchants_repo.search_first_row(name=merchant_name)
         if not merchant:
             raise BalanceMerchantDoesNotExistError("Merchant does not exist")
-        return await self.balance_repo.search(merchant_id=merchant.id)
+        balances = await self.balances_repo.search(merchant_id=merchant.id)
+        return [normalize_dict(asdict(balance)) for balance in balances]

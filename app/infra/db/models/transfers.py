@@ -19,6 +19,8 @@ transfers = Table(
     Column("amount", NUMERIC(precision=12, scale=8), nullable=False),
     Column("percent_fee", NUMERIC(precision=12, scale=2), nullable=False),
     Column("currency", String, nullable=False),
+    Column("idempotency_key", String, nullable=False),
     Index("transfers_from_merchant_id_idx", "from_merchant_id"),
     Index("transfers_to_merchant_id_idx", "to_merchant_id"),
+    Index("transfers_idempotency_key_uq_idx", "idempotency_key", unique=True),
 )

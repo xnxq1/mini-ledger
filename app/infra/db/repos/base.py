@@ -1,7 +1,9 @@
 import abc
 from contextlib import asynccontextmanager
+from datetime import datetime
+from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import column, select
 
 from app.infra.db.connection import get_async_engine
 from app.infra.db.repos.exceptions import handle_db_errors
@@ -9,25 +11,19 @@ from app.infra.db.repos.exceptions import handle_db_errors
 
 class BaseRepo(abc.ABC):
     @asynccontextmanager
-    async def _connection(self):
+    async def transaction(self):
         engine = get_async_engine()
         async with engine.begin() as conn:
             yield conn
 
-    @asynccontextmanager
-    async def transaction(self):
-        async with self._connection() as con:
-            async with con.transaction():
-                yield con
-
     async def fetch(self, query) -> list:
-        async with self._connection() as conn:
+        async with self.transaction() as conn:
             result = await conn.execute(query)
             result = result.fetchall()
             return [dict(r._mapping) for r in result]
 
     async def fetchrow(self, query) -> dict | None:
-        async with self._connection() as conn:
+        async with self.transaction() as conn:
             result = await conn.execute(query)
             result = result.fetchone()
             return dict(result._mapping) if result else None
@@ -37,12 +33,35 @@ class EntityRepo(BaseRepo):
     db_entity = None
     domain_entity = None
 
-    def _get_filter_bool_expression(self, filter_name, filter_value):
-        return self.db_entity.columns[filter_name].__eq__(filter_value)
+    def _get_filter_bool_expression(self, filter_name, filter_value, base_query):
+        if filter_name in base_query.columns:
+            return column(filter_name).__eq__(filter_value)
+
+        split_by_underscore = filter_name.split("_")
+        sign = split_by_underscore.pop()
+        col_name = "_".join(split_by_underscore)
+        col = column(col_name)
+
+        if sign in {"lt", "le", "gt", "ge", "ne"}:
+            return getattr(col, f"__{sign}__")(filter_value)
+        elif sign == "in":
+            return col.in_(filter_value)
+        elif sign == "notin":
+            return ~col.in_(filter_value)
+        elif sign == "is":
+            return col.is_(filter_value)
+        elif sign == "isnot":
+            return col.is_not(filter_value)
+        elif sign == "like":
+            return col.like(filter_value)
+        elif sign == "ilike":
+            return col.ilike(filter_value)
+
+        raise ValueError(f"Unknown filter name ({filter_name})")
 
     def _apply_filters(self, query, **filters):
         for filter_name, filter_value in filters.items():
-            query = query.where(self._get_filter_bool_expression(filter_name, filter_value))
+            query = query.where(self._get_filter_bool_expression(filter_name, filter_value, query))
 
         return query
 
@@ -62,3 +81,13 @@ class EntityRepo(BaseRepo):
         query = self.db_entity.insert().values(payload).returning(self.db_entity)
         res = await self.fetchrow(query)
         return self.domain_entity(**res)
+
+    @handle_db_errors
+    async def update_by_id(self, entity_id: UUID, **payload) -> dict:
+        update_query = (
+            self.db_entity.update()
+            .values(updated=datetime.utcnow(), **payload)
+            .returning(self.db_entity)
+            .where(self.db_entity.c.id == entity_id)
+        )
+        return await self.fetchrow(update_query)
