@@ -7,6 +7,7 @@ from app.api.exceptions import register_exceptions
 from app.infra.config import settings
 from app.infra.db.connection import close_db
 from app.infra.logging import get_logger, setup_logging
+from app.infra.redis.connection import close_redis
 
 logger = get_logger(__name__)
 
@@ -16,6 +17,7 @@ async def lifespan(app: FastAPI):
     logger.info("Application started")
     yield
     await close_db()
+    await close_redis()
     logger.info("Application stopped")
 
 

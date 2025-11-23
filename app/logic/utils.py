@@ -20,4 +20,3 @@ def normalize_decimal(value):
 
 def normalize_dict(data: dict) -> dict:
     return {key: normalize_decimal(value) for key, value in data.items()}
-
