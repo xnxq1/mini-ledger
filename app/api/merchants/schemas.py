@@ -8,11 +8,6 @@ class CreateMerchantRequest(BaseModel):
     name: str
     percent_fee: Decimal = Field(gt=0, le=100)
 
-    @model_validator(mode="after")
-    def validate_different_merchants(self):
-        if self.from_merchant == self.to_merchant:
-            raise ValueError("Cannot transfer to the same merchant")
-        return self
 
 
 class CreateBalanceRequest(BaseModel):
