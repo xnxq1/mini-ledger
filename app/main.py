@@ -2,6 +2,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.api import merchant_router
+from app.api.exceptions import register_exceptions
 from app.infra.config import settings
 from app.infra.db.connection import close_db
 from app.infra.logging import get_logger, setup_logging
@@ -29,6 +31,9 @@ def create_app() -> FastAPI:
         debug=settings.debug,
         lifespan=lifespan,
     )
+    register_exceptions(app)
+    app.include_router(merchant_router)
+
     @app.get("/")
     async def root():
         return {
