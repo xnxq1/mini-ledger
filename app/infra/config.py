@@ -20,7 +20,6 @@ class Settings(BaseSettings):
     redis_port: int = Field(default=6379, alias="REDIS_PORT")
     redis_db: int = Field(default=0, alias="REDIS_DB")
 
-
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
     json_logs: bool = Field(default=True, alias="JSON_LOGS")
 
@@ -45,3 +44,6 @@ class Settings(BaseSettings):
 
 def get_settings() -> Settings:
     return Settings()
+
+
+settings = get_settings()

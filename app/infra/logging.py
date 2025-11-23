@@ -18,11 +18,7 @@ def setup_logging(log_level: str = "INFO", json_logs: bool = True) -> None:
             structlog.processors.StackInfoRenderer(),
             structlog.processors.format_exc_info,
             structlog.processors.UnicodeDecoder(),
-            (
-                structlog.processors.JSONRenderer()
-                if json_logs
-                else structlog.dev.ConsoleRenderer()
-            ),
+            (structlog.processors.JSONRenderer() if json_logs else structlog.dev.ConsoleRenderer()),
         ],
         wrapper_class=structlog.stdlib.BoundLogger,
         context_class=dict,
@@ -60,4 +56,3 @@ def setup_logging(log_level: str = "INFO", json_logs: bool = True) -> None:
 
 def get_logger(name: str) -> Any:
     return structlog.get_logger(name)
-
