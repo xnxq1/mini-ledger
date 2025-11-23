@@ -27,11 +27,8 @@ class BalancesService:
         return normalize_dict(asdict(res))
 
     async def get_balances(self, merchant_name: str) -> list:
-        """
-        Не можем сделать join запрос поскольку нужно зарейзить not found если нет мерчанта
-        """
-        merchant = await self.merchants_repo.search_first_row(name=merchant_name)
+        merchant = await self.merchants_repo.search_first_row(name=merchant_name, archived=False)
         if not merchant:
             raise BalanceMerchantDoesNotExistError("Merchant does not exist")
-        balances = await self.balances_repo.search(merchant_id=merchant.id)
+        balances = await self.balances_repo.search(merchant_id=merchant.id, archived=False)
         return [normalize_dict(asdict(balance)) for balance in balances]

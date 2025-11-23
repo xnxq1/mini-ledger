@@ -25,12 +25,12 @@ class MerchantsService:
         return asdict(res)
 
     async def get_merchants_with_balances(self, merchant_name: str) -> dict:
-        merchant = await self.merchants_repo.search_first_row(name=merchant_name)
+        merchant = await self.merchants_repo.search_first_row(name=merchant_name, archived=False)
         if merchant is None:
             raise MerchantDoesNotExistError("Merchant not found")
-        balances = await self.balances_repo.search(merchant_id=merchant.id)
+        balances = await self.balances_repo.search(merchant_id=merchant.id, archived=False)
         return {**convert_dt_to_dict(merchant), "balances": convert_dt_to_dict(balances)}
 
     async def get_merchants(self) -> list:
-        res = await self.merchants_repo.search()
+        res = await self.merchants_repo.search(archived=False)
         return convert_dt_to_dict(res)

@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from decimal import Decimal
 
 from app.infra.db.repos.balances import BalancesRepo
@@ -10,7 +11,7 @@ from app.logic.transfers.exceptions import (
     TransferMerchantDoesNotExistError,
 )
 from app.logic.transfers.models import CreateTransferDict
-from app.logic.utils import convert_dt_to_dict
+from app.logic.utils import convert_dt_to_dict, normalize_dict
 
 
 class TransferService:
@@ -41,7 +42,8 @@ class TransferService:
             ),
         ):
             exist_transfer = await self.transfers_repo.search_first_row(
-                idempotency_key=idempotency_key
+                idempotency_key=idempotency_key,
+                archived=False,
             )
             if exist_transfer:
                 return convert_dt_to_dict(exist_transfer)
@@ -98,7 +100,9 @@ class TransferService:
             return convert_dt_to_dict(transfer)
 
     async def get_from_to_merchants(self, from_merchant_name: str, to_merchant_name: str) -> tuple:
-        merchants = await self.merchants_repo.search(name_in=[from_merchant_name, to_merchant_name])
+        merchants = await self.merchants_repo.search(
+            name_in=[from_merchant_name, to_merchant_name], archived=False
+        )
         from_merchant = [m for m in merchants if m.name == from_merchant_name]
         to_merchant = [m for m in merchants if m.name == to_merchant_name]
 
@@ -110,9 +114,19 @@ class TransferService:
         balances = await self.balances_repo.search(
             merchant_id_in=[from_merchant_id, to_merchant_id],
             currency=currency,
+            archived=False,
         )
         from_balance = [b for b in balances if b.merchant_id == from_merchant_id]
 
         to_balance = [b for b in balances if b.merchant_id == to_merchant_id]
 
         return from_balance[0] if from_balance else None, to_balance[0] if to_balance else None
+
+    async def get_transfers(self, **filters) -> list[dict]:
+        transfers_list = await self.transfers_repo.get_transfers_with_merchant_names(
+            from_merchant=filters.get("from_merchant"),
+            to_merchant=filters.get("to_merchant"),
+            currency=filters.get("currency"),
+        )
+
+        return [normalize_dict(asdict(transfer)) for transfer in transfers_list]
