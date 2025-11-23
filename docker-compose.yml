@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: mini-ledger-postgres
+    environment:
+      POSTGRES_DB: mini_ledger
+      POSTGRES_USER: ledger_user
+      POSTGRES_PASSWORD: ledger_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ledger_user -d mini_ledger"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mini-ledger-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: mini-ledger-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - mini-ledger-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mini-ledger-app
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://ledger_user:ledger_password@postgres:5432/mini_ledger
+      REDIS_URL: redis://redis:6379/0
+      PYTHONUNBUFFERED: 1
+    volumes:
+      - .:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mini-ledger-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  mini-ledger-network:
+    driver: bridge
+

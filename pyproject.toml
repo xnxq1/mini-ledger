@@ -8,9 +8,22 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "fastapi (>=0.121.3,<0.122.0)",
+    "uvicorn[standard]>=0.30.0",
+    "psycopg2-binary>=2.9.9",
+    "sqlalchemy>=2.0.0",
+    "redis>=5.0.0",
+    "alembic>=1.13.0",
+    "pydantic-settings>=2.0.0",
+    "typer (>=0.20.0,<0.21.0)",
+    "click (>=8.3.1,<9.0.0)",
+    "make (>=0.1.6.post2,<0.2.0)",
 ]
 
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+package-mode = false

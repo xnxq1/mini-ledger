@@ -1,0 +1,40 @@
+.PHONY: help build up down restart logs shell-app shell-db shell-redis clean
+
+help: ## Показать помощь
+	@echo "Доступные команды:"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
+
+build: ## Собрать Docker образы
+	docker-compose build
+
+up: ## Запустить все сервисы
+	docker-compose up -d
+
+down: ## Остановить все сервисы
+	docker-compose down
+
+restart: ## Перезапустить все сервисы
+	docker-compose restart
+
+logs-all: ## Показать логи всех сервисов
+	docker-compose logs -f
+
+shell-app: ## Открыть shell в контейнере приложения
+	docker-compose exec app /bin/bash
+
+shell-db: ## Открыть psql в PostgreSQL
+	docker-compose exec postgres psql -U ledger_user -d mini_ledger
+
+shell-redis: ## Открыть redis-cli
+	docker-compose exec redis redis-cli
+
+clean: ## Остановить и удалить все контейнеры и volumes
+	docker-compose down -v
+	docker system prune -f
+
+rebuild: ## Пересобрать и запустить
+	docker-compose up -d --build
+
+status: ## Показать статус контейнеров
+	docker-compose ps
+
