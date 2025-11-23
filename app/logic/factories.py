@@ -7,9 +7,12 @@ from app.logic.merchants.service import MerchantsService
 def merchant_service_factory():
     return MerchantsService(
         merchants_repo=MerchantsRepo(),
+        balances_repo=BalancesRepo(),
     )
+
 
 def balance_service_factory():
     return BalancesService(
         balance_repo=BalancesRepo(),
+        merchant_repo=MerchantsRepo(),
     )

@@ -37,11 +37,25 @@ class EntityRepo(BaseRepo):
     db_entity = None
     domain_entity = None
 
+    def _get_filter_bool_expression(self, filter_name, filter_value):
+        return self.db_entity.columns[filter_name].__eq__(filter_value)
+
+    def _apply_filters(self, query, **filters):
+        for filter_name, filter_value in filters.items():
+            query = query.where(self._get_filter_bool_expression(filter_name, filter_value))
+
+        return query
+
     @handle_db_errors
-    async def search(self) -> list[domain_entity]:
-        query = select(self.db_entity)
+    async def search(self, **filters) -> list[domain_entity]:
+        query = self._apply_filters(select(self.db_entity), **filters)
         res = await self.fetch(query)
         return [self.domain_entity(**r) for r in res]
+
+    @handle_db_errors
+    async def search_first_row(self, **filters) -> domain_entity:
+        res = await self.search(**filters)
+        return res[0] if res else None
 
     @handle_db_errors
     async def insert(self, payload: dict) -> domain_entity:
