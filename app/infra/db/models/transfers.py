@@ -16,7 +16,7 @@ transfers = Table(
         ForeignKey("merchants.id", name="transfers_to_merchants_id_fk"),
         nullable=False,
     ),
-    Column("amount", NUMERIC(precision=12, scale=2), nullable=False),
+    Column("amount", NUMERIC(precision=12, scale=8), nullable=False),
     Column("percent_fee", NUMERIC(precision=12, scale=2), nullable=False),
     Column("currency", String, nullable=False),
     Index("transfers_from_merchant_id_idx", "from_merchant_id"),

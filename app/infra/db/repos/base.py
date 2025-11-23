@@ -23,7 +23,8 @@ class BaseRepo(abc.ABC):
     async def fetch(self, query) -> list:
         async with self._connection() as conn:
             result = await conn.execute(query)
-            return result.fetchall()
+            result = result.fetchall()
+            return [dict(r._mapping) for r in result]
 
     async def fetchrow(self, query) -> dict | None:
         async with self._connection() as conn:

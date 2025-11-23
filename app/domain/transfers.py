@@ -11,3 +11,4 @@ class Transfer(BaseEntity):
     to_merchant_id: UUID
     amount: Decimal
     currency: str
+    percent_fee: Decimal

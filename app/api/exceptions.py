@@ -6,12 +6,15 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import ORJSONResponse
 
 from app.api.schemas import ErrorResponse
+from app.logic.balances.exceptions import BalanceAlreadyExistError, BalanceMerchantDoesNotExistError
 from app.logic.merchants.exceptions import MerchantAlreadyExistError
 
 
 def register_exceptions(app: FastAPI):
     app.add_exception_handler(Exception, partial_handler(500))
     app.add_exception_handler(MerchantAlreadyExistError, partial_handler(409))
+    app.add_exception_handler(BalanceAlreadyExistError, partial_handler(409))
+    app.add_exception_handler(BalanceMerchantDoesNotExistError, partial_handler(404))
     app.add_exception_handler(RequestValidationError, pydantic_handler)
 
 
