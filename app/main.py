@@ -1,6 +1,4 @@
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
-import os
 
 
 def create_app() -> FastAPI:

@@ -1,4 +1,4 @@
-.PHONY: help build up down restart logs shell-app shell-db shell-redis clean
+.PHONY: help build up down restart logs shell-app shell-db shell-redis clean lint format
 
 help: ## Показать помощь
 	@echo "Доступные команды:"
@@ -37,4 +37,16 @@ rebuild: ## Пересобрать и запустить
 
 status: ## Показать статус контейнеров
 	docker-compose ps
+
+lint: ## Проверить код с помощью ruff
+	ruff check .
+
+lint-fix: ## Проверить и автоисправить код
+	ruff check . --fix
+
+format: ## Форматировать код с помощью ruff
+	ruff format .
+
+check: lint ## Полная проверка кода
+	@echo "Проверка завершена"
 

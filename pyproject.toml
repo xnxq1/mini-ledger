@@ -8,18 +8,26 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "fastapi (>=0.121.3,<0.122.0)",
+    "fastapi>=0.121.3",
     "uvicorn[standard]>=0.30.0",
     "psycopg2-binary>=2.9.9",
     "sqlalchemy>=2.0.0",
     "redis>=5.0.0",
     "alembic>=1.13.0",
     "pydantic-settings>=2.0.0",
-    "typer (>=0.20.0,<0.21.0)",
-    "click (>=8.3.1,<9.0.0)",
-    "make (>=0.1.6.post2,<0.2.0)",
+    "click>=8.3.1",
+    "structlog>=24.1.0",
+    "python-json-logger>=2.0.7",
+    "ruff (>=0.14.6,<0.15.0)",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.8.0",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "httpx>=0.27.0",
+]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
@@ -27,3 +35,35 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 package-mode = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "C",    # flake8-comprehensions
+    "B",    # flake8-bugbear
+    "UP",   # pyupgrade
+    "N",    # pep8-naming
+    "S",    # bandit
+    "A",    # flake8-builtins
+    "COM",  # flake8-commas
+    "T20",  # flake8-print
+]
+ignore = [
+    "S101",  # assert
+    "COM812", # missing-trailing-comma (conflict with formatter)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"manage.py" = ["T20"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
