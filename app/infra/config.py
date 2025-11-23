@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     redis_db: int = Field(default=0, alias="REDIS_DB")
 
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
-    json_logs: bool = Field(default=True, alias="JSON_LOGS")
+    json_logs: bool = Field(default=False, alias="JSON_LOGS")
 
     debug: bool = Field(default=False, alias="DEBUG")
     app_name: str = Field(default="Mini Ledger", alias="APP_NAME")
