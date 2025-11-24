@@ -32,72 +32,74 @@ class TransferService:
         to_merchant_name = payload["to_merchant"]
         currency = payload["currency"]
         amount = payload["amount"]
+        lock_keys = sorted(
+            [
+                f"merchant_balance_{from_merchant_name}_{currency}_transfer_lock",
+                f"merchant_balance_{to_merchant_name}_{currency}_transfer_lock",
+            ]
+        )
+        async with self.redis_locks.acquire(lock_keys[0], timeout=60):
+            async with self.redis_locks.acquire(lock_keys[1], timeout=60):
+                exist_transfer = await self.transfers_repo.search_first_row(
+                    idempotency_key=idempotency_key,
+                    archived=False,
+                )
+                if exist_transfer:
+                    return convert_dt_to_dict(exist_transfer)
 
-        async with (
-            self.redis_locks.acquire(
-                key=f"merchant_balance_{from_merchant_name}_{currency}_transfer_lock", timeout=60
-            ),
-            self.redis_locks.acquire(
-                key=f"merchant_balance_{to_merchant_name}_{currency}_transfer_lock", timeout=60
-            ),
-        ):
-            exist_transfer = await self.transfers_repo.search_first_row(
-                idempotency_key=idempotency_key,
-                archived=False,
-            )
-            if exist_transfer:
-                return convert_dt_to_dict(exist_transfer)
+                from_merchant, to_merchant = await self.get_from_to_merchants(
+                    from_merchant_name, to_merchant_name
+                )
+                if not from_merchant or not to_merchant:
+                    raise TransferMerchantDoesNotExistError(
+                        "From merchant or to merchant does not exist"
+                    )
 
-            from_merchant, to_merchant = await self.get_from_to_merchants(
-                from_merchant_name, to_merchant_name
-            )
-            if not from_merchant or not to_merchant:
-                raise TransferMerchantDoesNotExistError(
-                    "From merchant or to merchant does not exist"
+                (
+                    from_merchant_balance,
+                    to_merchant_balance,
+                ) = await self.get_from_to_merchant_balances(
+                    from_merchant.id, to_merchant.id, currency
                 )
 
-            from_merchant_balance, to_merchant_balance = await self.get_from_to_merchant_balances(
-                from_merchant.id, to_merchant.id, currency
-            )
+                if not from_merchant_balance:
+                    raise TransferBalanceDoesNotExistError(
+                        f"From merchant balance with currency {currency} does not exist"
+                    )
+                final_amount = amount + (amount / Decimal("100") * from_merchant.percent_fee)
 
-            if not from_merchant_balance:
-                raise TransferBalanceDoesNotExistError(
-                    f"From merchant balance with currency {currency} does not exist"
-                )
-            final_amount = amount + (amount / Decimal("100") * from_merchant.percent_fee)
+                if from_merchant_balance.amount < final_amount:
+                    raise TransferInsufficientFundsError("Insufficient funds")
 
-            if from_merchant_balance.amount < final_amount:
-                raise TransferInsufficientFundsError("Insufficient funds")
-
-            async with self.transfers_repo.transaction():
-                if not to_merchant_balance:
-                    to_merchant_balance = await self.balances_repo.insert(
+                async with self.transfers_repo.transaction():
+                    if not to_merchant_balance:
+                        to_merchant_balance = await self.balances_repo.insert(
+                            payload={
+                                "merchant_id": to_merchant.id,
+                                "currency": currency,
+                                "amount": 0,
+                            }
+                        )
+                    await self.balances_repo.update_by_id(
+                        entity_id=to_merchant_balance.id,
+                        amount=to_merchant_balance.amount + amount,
+                    )
+                    await self.balances_repo.update_by_id(
+                        entity_id=from_merchant_balance.id,
+                        amount=from_merchant_balance.amount - final_amount,
+                    )
+                    transfer = await self.transfers_repo.insert(
                         payload={
-                            "merchant_id": to_merchant.id,
+                            "from_merchant_id": from_merchant.id,
+                            "to_merchant_id": to_merchant.id,
+                            "amount": amount,
+                            "percent_fee": from_merchant.percent_fee,
                             "currency": currency,
-                            "amount": 0,
+                            "idempotency_key": idempotency_key,
                         }
                     )
-                await self.balances_repo.update_by_id(
-                    entity_id=to_merchant_balance.id,
-                    amount=to_merchant_balance.amount + amount,
-                )
-                await self.balances_repo.update_by_id(
-                    entity_id=from_merchant_balance.id,
-                    amount=from_merchant_balance.amount - final_amount,
-                )
-                transfer = await self.transfers_repo.insert(
-                    payload={
-                        "from_merchant_id": from_merchant.id,
-                        "to_merchant_id": to_merchant.id,
-                        "amount": amount,
-                        "percent_fee": from_merchant.percent_fee,
-                        "currency": currency,
-                        "idempotency_key": idempotency_key,
-                    }
-                )
 
-            return convert_dt_to_dict(transfer)
+                return convert_dt_to_dict(transfer)
 
     async def get_from_to_merchants(self, from_merchant_name: str, to_merchant_name: str) -> tuple:
         merchants = await self.merchants_repo.search(
