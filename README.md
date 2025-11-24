@@ -376,7 +376,7 @@ receiver_balance += transfer_amount  # +100
 
 ```bash
 # Запустить все тесты
-pytest
+make test
 ```
 ### Ключевые тесты
 
